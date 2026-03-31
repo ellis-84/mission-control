@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eric's Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1916;
+    --surface2: #222120;
+    --border: #2e2c29;
+    --accent: #e8c84a;
+    --text: #f0ede8;
+    --muted: #7a776f;
+    --success: #5a9e6f;
+    --danger: #c05a4a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+  /* LOGIN */
+  #login-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 48px; width: 100%; max-width: 400px;
+  }
+  .login-logo { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--accent); margin-bottom: 6px; }
+  .login-sub { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; margin-bottom: 32px; }
+  .login-box input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 13px 16px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px;
+    outline: none; transition: border-color 0.2s; margin-bottom: 12px;
+  }
+  .login-box input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; background: var(--accent); color: #0f0e0c; border: none; border-radius: 8px;
+    padding: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; cursor: pointer;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .error-msg { color: var(--danger); font-size: 12px; margin-top: 8px; font-family: 'DM Mono', monospace; display: none; }
+
+  /* APP */
+  #app { display: none; min-height: 100vh; }
+  .topbar {
+    border-bottom: 1px solid var(--border); padding: 0 28px; height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--accent); }
+  .tab-nav { display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+  .tab-btn {
+    background: none; border: none; color: var(--muted); padding: 6px 16px; border-radius: 6px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--surface2); color: var(--text); }
+  .logout-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 13px;
+    border-radius: 6px; cursor: pointer; font-size: 12px; font-family: 'DM Mono', monospace;
+  }
+  .logout-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* LAYOUT */
+  .main-layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 58px); }
+  .sidebar {
+    border-right: 1px solid var(--border); padding: 24px 20px; background: var(--surface);
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .sidebar-section h3 {
+    font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+  label { font-size: 12px; color: var(--muted); }
+  input[type="text"], textarea, select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s; width: 100%;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  input[type="text"] { padding: 10px 12px; }
+  textarea { padding: 10px 12px; resize: vertical; line-height: 1.5; }
+  select { padding: 10px 12px; appearance: none; cursor: pointer; }
+  select option { background: var(--surface2); }
+
+  .type-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+    padding: 5px 13px; font-size: 12px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all 0.15s;
+  }
+  .pill.active { background: rgba(232,200,74,0.12); border-color: var(--accent); color: var(--accent); }
+
+  .generate-btn {
+    background: var(--accent); color: #0f0e0c; border: none; border-radius: 10px;
+    padding: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px;
+    cursor: pointer; width: 100%; margin-top: auto;
+  }
+  .generate-btn:hover { opacity: 0.9; }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .regen-btn {
+    background: none; border: 1px solid var(--border); color: var(--text); border-radius: 10px;
+    padding: 10px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 14px;
+    cursor: pointer; width: 100%; display: none;
+  }
+  .regen-btn:hover { border-color: var(--muted); }
+
+  /* CONTENT */
+  .content-area { padding: 28px; overflow-y: auto; }
+
+  /* TABS */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* PAGE HEADERS */
+  .page-header { margin-bottom: 24px; }
+  .page-header h2 { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 4px; }
+  .page-header p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  /* EMAIL OUTPUT */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 380px; text-align: center; color: var(--muted); gap: 10px;
+  }
+  .empty-state h3 { font-size: 18px; color: var(--text); font-family: 'Playfair Display', serif; }
+  .empty-state p { font-size: 14px; max-width: 280px; line-height: 1.6; }
+
+  .loading-state { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; gap: 14px; }
+  .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state p { color: var(--muted); font-size: 14px; font-family: 'DM Mono', monospace; }
+
+  .email-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; max-width: 820px; animation: slideUp 0.3s ease both;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  .card-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface2);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .card-subject { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); flex: 1; }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px;
+    padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'DM Mono', monospace; white-space: nowrap;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+  .card-body { padding: 24px; }
+  .email-body { font-size: 14px; line-height: 1.8; color: var(--text); }
+  .email-body p { margin-bottom: 1em; }
+  .email-body p:last-child { margin-bottom: 0; }
+
+  /* VOICE LIBRARY */
+  .notice {
+    background: rgba(232,200,74,0.07); border: 1px solid rgba(232,200,74,0.18);
+    border-radius: 8px; padding: 11px 15px; font-size: 13px; color: var(--muted);
+    line-height: 1.5; margin-bottom: 18px;
+  }
+  .notice strong { color: var(--accent); }
+  .voice-count-badge {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent);
+    background: rgba(232,200,74,0.1); border: 1px solid rgba(232,200,74,0.2);
+    border-radius: 20px; padding: 3px 10px; display: inline-block; margin-bottom: 16px;
+  }
+  .email-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .email-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .email-item-info { flex: 1; min-width: 0; }
+  .email-item-info strong { display: block; font-size: 13px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .email-item-info span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .type-tag { font-family: 'DM Mono', monospace; font-size: 10px; padding: 2px 8px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.06em; }
+  .tag-story { background: rgba(201,125,58,0.15); color: #d4925a; }
+  .tag-howto { background: rgba(90,158,111,0.15); color: var(--success); }
+  .tag-promo { background: rgba(232,200,74,0.15); color: var(--accent); }
+  .tag-other { background: rgba(122,119,111,0.15); color: var(--muted); }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 2px 4px; flex-shrink: 0; }
+  .del-btn:hover { color: var(--danger); }
+
+  .add-form { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .add-form h3 { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
+  .add-form-row { display: grid; grid-template-columns: 1fr 150px; gap: 10px; margin-bottom: 10px; }
+  .add-form-row input { padding: 9px 12px; }
+  .add-form-row select { padding: 9px 12px; appearance: none; cursor: pointer; }
+  .btn-secondary {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 18px; font-family: 'DM Sans', sans-serif; font-size: 14px;
+    font-weight: 500; cursor: pointer; margin-top: 10px;
+  }
+  .btn-secondary:hover { border-color: var(--muted); }
+
+  /* KNOWLEDGE BASE */
+  .kb-area { max-width: 820px; }
+  .kb-status {
+    font-family: 'DM Mono', monospace; font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    display: inline-block; margin-bottom: 18px;
+  }
+  .kb-status.saved { background: rgba(90,158,111,0.15); color: var(--success); border: 1px solid rgba(90,158,111,0.3); }
+  .kb-status.unsaved { background: rgba(232,200,74,0.1); color: var(--accent); border: 1px solid rgba(232,200,74,0.2); }
+  .kb-sections { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+  .kb-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .kb-section-header {
+    padding: 12px 18px; background: var(--surface2); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .kb-section-header span { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .kb-section-header small { font-size: 12px; color: var(--muted); }
+  .kb-section textarea { border: none; border-radius: 0; background: transparent; padding: 16px 18px; font-size: 13px; line-height: 1.7; min-height: 140px; }
+  .save-kb-btn {
+    background: var(--accent); color: #0f0e0c; border: none; border-radius: 10px;
+    padding: 13px 28px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; cursor: pointer;
+  }
+  .save-kb-btn:hover { opacity: 0.9; }
+  .save-kb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Mission Control</div>
+    <div class="login-sub">// Eric's mission control</div>
+    <input type="password" id="password-input" placeholder="Enter password" />
+    <button class="btn-primary" onclick="login()">Enter Dashboard</button>
+    <div class="error-msg" id="login-error">Wrong password. Try again.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">Mission Control</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('generate', this)">✍️ Generate</button>
+        <button class="tab-btn" onclick="switchTab('voice', this)">📚 Voice Library</button>
+        <button class="tab-btn" onclick="switchTab('knowledge', this)">🧠 Knowledge Base</button>
+      </div>
+      <button class="logout-btn" onclick="logout()">logout</button>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h3>Topic</h3>
+        <div class="form-group">
+          <input type="text" id="topic-input" placeholder="e.g. objection: takes too long" />
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <h3>Email Type</h3>
+        <div class="type-pills">
+          <div class="pill active" data-type="story" onclick="selectType(this)">📖 Story</div>
+          <div class="pill" data-type="howto" onclick="selectType(this)">📋 How-To</div>
+          <div class="pill" data-type="promotional" onclick="selectType(this)">🔥 Promo</div>
+        </div>
+      </div>
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;">
+        <button class="generate-btn" id="gen-btn" onclick="generateEmail()">Generate Email</button>
+        <button class="regen-btn" id="regen-btn" onclick="generateEmail()">↺ Try another version</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content-area">
+
+      <!-- GENERATE -->
+      <div id="tab-generate" class="tab-panel active">
+        <div id="loading-state" class="loading-state">
+          <div class="spinner"></div>
+          <p>Writing in your voice...</p>
+        </div>
+        <div id="email-output">
+          <div class="empty-state">
+            <h3>Ready when you are</h3>
+            <p>Enter a topic on the left and hit generate.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VOICE LIBRARY -->
+      <div id="tab-voice" class="tab-panel">
+        <div style="max-width:820px;">
+          <div class="page-header">
+            <h2>Voice Library</h2>
+            <p>Your past emails. The AI reads all of these before writing to match your style.</p>
+          </div>
+          <div class="notice"><strong>Tip:</strong> Add 10+ emails for best results. Mix of all three types.</div>
+          <div id="voice-badge" class="voice-count-badge">0 emails</div>
+          <div id="voice-list" class="email-list"></div>
+          <div class="add-form">
+            <h3>Add an email</h3>
+            <div class="add-form-row">
+              <input type="text" id="new-label" placeholder="Short label (e.g. Logan bumper story)" />
+              <select id="new-type">
+                <option value="story">Storytelling</option>
+                <option value="howto">How-To</option>
+                <option value="promo">Promotional</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <textarea id="new-body" rows="8" placeholder="Paste your email here..."></textarea>
+            <button class="btn-secondary" onclick="addEmail()">+ Add to Library</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KNOWLEDGE BASE -->
+      <div id="tab-knowledge" class="tab-panel">
+        <div class="kb-area">
+          <div class="page-header">
+            <h2>Knowledge Base</h2>
+            <p>Paste your course content, Q&As, student wins, objections, program details — anything. The AI pulls from this to make every email more specific and credible.</p>
+          </div>
+          <div id="kb-status" class="kb-status unsaved">unsaved changes</div>
+          <div class="kb-sections">
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Course Content</span>
+                <small>Lessons, modules, key concepts</small>
+              </div>
+              <textarea id="kb-course" placeholder="Paste your course outline, lesson content, key steps you teach..."></textarea>
+            </div>
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Program Facts</span>
+                <small>How commissions work, approval process, video specs</small>
+              </div>
+              <textarea id="kb-facts" placeholder="Commission rates, how the approval process works, how videos get shown, stats..."></textarea>
+            </div>
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Student Wins & Results</span>
+                <small>Real numbers from real students</small>
+              </div>
+              <textarea id="kb-wins" placeholder="e.g. Student making $800-900/mo just from house products. Student approved in 3 days..."></textarea>
+            </div>
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Common Objections & Answers</span>
+                <small>What you hear all the time + how you respond</small>
+              </div>
+              <textarea id="kb-objections" placeholder="e.g. Objection: takes too long. Answer: one video = 10 min. It pays you forever..."></textarea>
+            </div>
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Live Stream Q&As / FAQs</span>
+                <small>Questions your audience asks repeatedly</small>
+              </div>
+              <textarea id="kb-qa" placeholder="Paste Q&A transcripts, common DMs you answer, FAQ content..."></textarea>
+            </div>
+            <div class="kb-section">
+              <div class="kb-section-header">
+                <span>Other Content</span>
+                <small>Anything else — social posts, notes, ideas</small>
+              </div>
+              <textarea id="kb-other" placeholder="Social posts, extra context, anything else you want the AI to know..."></textarea>
+            </div>
+          </div>
+          <button class="save-kb-btn" id="save-kb-btn" onclick="saveKnowledgeBase()">Save Knowledge Base</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let password = '';
+
+const SEEDS = [
+  { id:1, label:'Stuff around the house (promo)', type:'promo', body:`I don't think you realize how much extra money you have sitting around your house right now.\n\nYour blender in the kitchen = money.\n\nYour electric toothbrush in the bathroom = money.\n\nYour kids toys = money.\n\nYour snowblower and lawn mower = money.\n\nAnd it's passive.\n\nI got a DM the other day about which side hustles are the best ones.\n\nGuess what my answer was...\n\nAmazon. Review. Videos.\n\nYou post them once, and get paid over and over for it.\n\nIt's like you're Taylor Swift.\n\nWhen she makes a song, and people stream it and listen to it on the radio - she makes royalties every time.\n\nExcept with amazon videos, you get a % of the sale.\n\nThis is a lot more simple than you think it is.\n\nTime to get started!\n\nFirst Step? Get approved.\n\nLearn How to Get Approved (takes just 10 minutes a day) >>\n\nCheers,\nEric`},
+  { id:2, label:'Spring break / daughter prizes (story)', type:'story', body:`Weird day.\n\nHit 50 degrees outside, but we still have 140 feet of snow on the ground.\n\nNot literally 140, just seems like it.\n\nBut since the kids are on spring break, I'm trying to get them outside as much as possible.\n\nWe were able to go for a nice walk/scooter ride this afternoon.\n\nBut this morning I wanted to take them to the golf simulator, unfortunately it was booked solid.\n\nSo we went indoor mini golfing instead.\n\nAnd of course, we had to hit up the game room after.\n\nWe played a lot of basketball and skeeball.\n\nHad 102 tickets when it was said and done...then the dreadful part...\n\nPicking "prizes" with the tickets.\n\nMy son made the choice of some PEZ candy almost immediately.\n\nMy daughter...she has a hard time making these decisions.\n\nWhenever we go to the store, and I ask her to pick 1 small thing - she takes FOREVER.\n\nGoes back and forth too.\n\nPicks one thing. No wait, I want this instead. Just kidding, I want the original thing.\n\n(She just doesn't want to make the wrong decision)\n\nAnyway...after about 18 minutes...she chose the candy bracelet.\n\n(to be fair, they have a pet rabbit by the prizes, and she got distracted by that)\n\nBut I think a lot of you do the same thing when it comes to doing business online.\n\nYou think and think and think and plan and plan and plan.\n\nAnd eventually...you do nothing.\n\nWhen you should be doing and doing and doing and failing and failing and failing.\n\nYou need to find out what DOESNT work as fast as possible.\n\nThat's the fastest way to being successful.\n\nGo do things.\n\nCheers,\nEric`},
+  { id:3, label:'Logan bumper truck (story)', type:'story', body:`My son almost lost his 2 front teeth...\n\nBy slamming into the bumper of grandpa's truck.\n\nLook, I've told him 1000's of times: when you're on your bike, you need to watch IN FRONT OF YOU.\n\nHe literally watches the ground sometimes with his head down.\n\nSince we were at grandma's house, he and his cousin only had their little balance bikes.\n\nThey were chasing each other, and Mr Logan wasn't looking and BAM...\n\nFace. Bumper. Ground. Crying. Bloody face.\n\nI took him inside.\n\nHad him hold some ice on his teeth.\n\nAs he was crying he said "Grampa needs to move truck next time".\n\nHaha, yeah.\n\nOr, and here's a crazy idea...watch where you're going!\n\nI checked his teeth. A little blood, but nothing loose, so that's a win.\n\nShortly after we headed back home.\n\nIn the car he was still upset. (he gets angry easily)\n\nAnd he said "I don't wanna go to grandmoms anymore!".\n\nBut he's fine fine.\n\nAte all his dinner with no teeth issues.\n\nCheers,\nEric`},
+  { id:4, label:'Send 40-100 messages/day (how-to)', type:'howto', body:`If you're having a hard time with amazon videos, or not making as much as you want...\n\nHere's what you need to do:\n\nFirst, realize that this isn't some "go viral and make millions" type of thing.\n\nIt's going to take time.\n\nNext, make sure you've posted videos for everything you have in your house.\n\nThat will give you some reps on making videos, and time to make a workflow that works best for you.\n\nThen, and this is the most important part...\n\nYou need to be sending a minimum of 40 messages a day.\n\nIdeally, 100/day.\n\nIf you want to learn how to get started, click here >>\n\nCheers,\nEric`}
+];
+
+let voiceEmails = JSON.parse(localStorage.getItem('ericVoice') || 'null') || SEEDS;
+let activeType = 'story';
+let lastEmail = null;
+
+function saveVoice() { localStorage.setItem('ericVoice', JSON.stringify(voiceEmails)); renderVoiceList(); }
+
+// LOGIN
+document.getElementById('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const pw = document.getElementById('password-input').value;
+  try {
+    const res = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pw }) });
+    const data = await res.json();
+    if (data.success) {
+      password = pw;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      renderVoiceList();
+      loadKnowledgeBase();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  } catch { document.getElementById('login-error').style.display = 'block'; }
+}
+
+function logout() {
+  password = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('password-input').value = '';
+}
+
+// TABS
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// TYPE
+function selectType(el) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  activeType = el.dataset.type;
+}
+
+// VOICE LIBRARY
+function renderVoiceList() {
+  const badge = document.getElementById('voice-badge');
+  badge.textContent = voiceEmails.length + ' email' + (voiceEmails.length !== 1 ? 's' : '');
+  const list = document.getElementById('voice-list');
+  if (!voiceEmails.length) { list.innerHTML = '<p style="color:var(--muted);font-size:13px;">No emails yet.</p>'; return; }
+  list.innerHTML = voiceEmails.map(e => `
+    <div class="email-item">
+      <div class="email-item-info">
+        <strong>${e.label || 'Untitled'}</strong>
+        <span>${e.body.substring(0,80)}...</span>
+      </div>
+      <span class="type-tag tag-${e.type}">${e.type}</span>
+      <button class="del-btn" onclick="deleteEmail(${e.id})">×</button>
+    </div>`).join('');
+}
+
+function deleteEmail(id) { voiceEmails = voiceEmails.filter(e => e.id !== id); saveVoice(); }
+
+function addEmail() {
+  const body = document.getElementById('new-body').value.trim();
+  if (!body) { alert('Paste an email first.'); return; }
+  voiceEmails.push({ id: Date.now(), label: document.getElementById('new-label').value.trim() || 'Untitled', type: document.getElementById('new-type').value, body });
+  saveVoice();
+  document.getElementById('new-label').value = '';
+  document.getElementById('new-body').value = '';
+}
+
+function getVoiceLibrary() {
+  return voiceEmails.map((e,i) => `--- EMAIL ${i+1} (${e.type}) ---\n${e.label}\n\n${e.body}`).join('\n\n');
+}
+
+// KNOWLEDGE BASE
+async function loadKnowledgeBase() {
+  try {
+    const res = await fetch('/api/kb/get', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password }) });
+    const data = await res.json();
+    if (data.content) {
+      parseKnowledgeBase(data.content);
+      setKbStatus(true);
+    }
+  } catch(err) { console.error('Could not load KB:', err); }
+}
+
+function parseKnowledgeBase(content) {
+  const sections = { course:'', facts:'', wins:'', objections:'', qa:'', other:'' };
+  const keys = Object.keys(sections);
+  const markers = {
+    course: '=== COURSE CONTENT ===',
+    facts: '=== PROGRAM FACTS ===',
+    wins: '=== STUDENT WINS ===',
+    objections: '=== OBJECTIONS & ANSWERS ===',
+    qa: '=== LIVE STREAM Q&As ===',
+    other: '=== OTHER CONTENT ==='
+  };
+  keys.forEach(key => {
+    const marker = markers[key];
+    const idx = content.indexOf(marker);
+    if (idx === -1) return;
+    const start = idx + marker.length;
+    let end = content.length;
+    keys.forEach(k2 => {
+      if (k2 === key) return;
+      const idx2 = content.indexOf(markers[k2]);
+      if (idx2 > idx && idx2 < end) end = idx2;
+    });
+    sections[key] = content.substring(start, end).trim();
+  });
+  Object.keys(sections).forEach(k => {
+    const el = document.getElementById('kb-' + k);
+    if (el) el.value = sections[k];
+  });
+}
+
+function buildKnowledgeBase() {
+  const parts = [
+    ['=== COURSE CONTENT ===', 'kb-course'],
+    ['=== PROGRAM FACTS ===', 'kb-facts'],
+    ['=== STUDENT WINS ===', 'kb-wins'],
+    ['=== OBJECTIONS & ANSWERS ===', 'kb-objections'],
+    ['=== LIVE STREAM Q&As ===', 'kb-qa'],
+    ['=== OTHER CONTENT ===', 'kb-other'],
+  ];
+  return parts.map(([header, id]) => {
+    const val = document.getElementById(id).value.trim();
+    return val ? `${header}\n${val}` : '';
+  }).filter(Boolean).join('\n\n');
+}
+
+function setKbStatus(saved) {
+  const el = document.getElementById('kb-status');
+  el.textContent = saved ? 'saved' : 'unsaved changes';
+  el.className = 'kb-status ' + (saved ? 'saved' : 'unsaved');
+}
+
+['kb-course','kb-facts','kb-wins','kb-objections','kb-qa','kb-other'].forEach(id => {
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => setKbStatus(false));
+  });
+});
+
+async function saveKnowledgeBase() {
+  const btn = document.getElementById('save-kb-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    const content = buildKnowledgeBase();
+    const res = await fetch('/api/kb/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password, content }) });
+    const data = await res.json();
+    if (data.success) { setKbStatus(true); btn.textContent = 'Saved ✓'; setTimeout(() => { btn.textContent = 'Save Knowledge Base'; }, 2000); }
+    else { btn.textContent = 'Error — try again'; }
+  } catch { btn.textContent = 'Error — try again'; }
+  btn.disabled = false;
+}
+
+// GENERATE
+async function generateEmail() {
+  const topic = document.getElementById('topic-input').value.trim();
+  if (!topic) { alert('Enter a topic first.'); return; }
+
+  const btn = document.getElementById('gen-btn');
+  const loading = document.getElementById('loading-state');
+  const output = document.getElementById('email-output');
+
+  btn.disabled = true;
+  btn.textContent = 'Writing...';
+  document.getElementById('regen-btn').style.display = 'none';
+  loading.style.display = 'flex';
+  output.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, topic, emailType: activeType, voiceLibrary: getVoiceLibrary() })
+    });
+    const data = await res.json();
+    if (data.error) { alert('Error: ' + data.error); return; }
+
+    lastEmail = data;
+    loading.style.display = 'none';
+    output.style.display = 'block';
+    output.innerHTML = `
+      <div class="email-card">
+        <div class="card-header">
+          <span class="card-subject">Subject: ${data.subject}</span>
+          <button class="copy-btn" id="copy-btn" onclick="copyEmail()">Copy</button>
+        </div>
+        <div class="card-body">
+          <div class="email-body">${bodyToHtml(data.body)}</div>
+        </div>
+      </div>`;
+    document.getElementById('regen-btn').style.display = 'block';
+  } catch(err) {
+    loading.style.display = 'none';
+    output.style.display = 'block';
+    output.innerHTML = '<div class="empty-state"><h3>Something went wrong</h3><p>Check your connection and try again.</p></div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Email';
+  }
+}
+
+function bodyToHtml(text) {
+  return text.split('\n\n').map(p => `<p>${p.replace(/\n/g,'<br>')}</p>`).join('');
+}
+
+function copyEmail() {
+  if (!lastEmail) return;
+  navigator.clipboard.writeText('Subject: ' + lastEmail.subject + '\n\n' + lastEmail.body);
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+}
+
+renderVoiceList();
+</script>
+</body>
+</html>
